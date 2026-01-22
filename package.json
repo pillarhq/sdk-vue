@@ -1,6 +1,6 @@
 {
   "name": "@pillar-ai/vue",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Vue bindings for Pillar Embedded Help SDK",
   "type": "module",
   "main": "./dist/index.js",

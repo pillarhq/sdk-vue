@@ -10,7 +10,8 @@ import type {
   ActionNames,
 } from '@pillar-ai/sdk';
 import { inject } from 'vue';
-import { pillarContextKey, type PillarContextValue } from '../PillarProvider.vue';
+import { pillarContextKey } from '../context';
+import type { PillarContextValue } from '../types';
 
 export type UsePillarResult = PillarContextValue;
 

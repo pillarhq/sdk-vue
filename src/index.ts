@@ -52,50 +52,39 @@
  * ```
  */
 
-// Provider
-export {
-    default as PillarProvider,
-    pillarContextKey,
-    type PillarContextValue,
-    type PillarProviderProps,
-    type CardComponentProps,
-    type CardComponent,
-} from './PillarProvider.vue';
+// Provider component
+export { default as PillarProvider } from './PillarProvider.vue';
 
-// Components
-export { default as PillarPanel, type PillarPanelProps } from './PillarPanel.vue';
+// Panel component
+export { default as PillarPanel } from './PillarPanel.vue';
+
+// Context
+export { pillarContextKey } from './context';
+
+// Types
+export type {
+    CardComponent, CardComponentProps, PillarContextValue, PillarPanelProps, PillarProviderProps
+} from './types';
 
 // Composables
 export { useHelpPanel, type UseHelpPanelResult } from './composables/useHelpPanel';
-export { usePillar, type UsePillarResult, type TypedUsePillarResult } from './composables/usePillar';
+export { usePillar, type TypedUsePillarResult, type UsePillarResult } from './composables/usePillar';
 
 // Re-export types from core SDK for convenience
 export type {
-    EdgeTriggerConfig,
-    MobileTriggerConfig,
-    MobileTriggerPosition,
-    MobileTriggerIcon,
-    MobileTriggerSize,
+    ActionDataType,
+    // Action types for type-safe onTask
+    ActionDefinitions, ActionNames, CardCallbacks,
+    CardRenderer, EdgeTriggerConfig,
     PanelConfig,
     PillarConfig,
     PillarEvents,
     PillarState,
     ResolvedConfig,
-    ResolvedMobileTriggerConfig,
-    ResolvedThemeConfig,
-    TaskExecutePayload,
+    ResolvedThemeConfig, SidebarTabConfig, SyncActionDefinitions, TaskExecutePayload,
     TextSelectionConfig,
     ThemeColors,
     ThemeConfig,
-    ThemeMode,
-    CardCallbacks,
-    CardRenderer,
-    SidebarTabConfig,
-    // Action types for type-safe onTask
-    ActionDefinitions,
-    SyncActionDefinitions,
-    ActionDataType,
-    ActionNames,
-    // Chat context for escalation
-    ChatContext,
+    ThemeMode
 } from '@pillar-ai/sdk';
+

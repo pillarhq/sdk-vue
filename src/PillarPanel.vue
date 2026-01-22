@@ -5,15 +5,8 @@
  */
 
 import { defineComponent, inject, onMounted, ref, type PropType, type CSSProperties } from 'vue';
-import { pillarContextKey, type PillarContextValue } from './PillarProvider.vue';
-
-export interface PillarPanelProps {
-  /** Custom class name for the container */
-  class?: string | string[] | Record<string, boolean>;
-  
-  /** Custom inline styles for the container */
-  style?: CSSProperties;
-}
+import { pillarContextKey } from './context';
+import type { PillarContextValue } from './types';
 
 /**
  * Renders the Pillar help panel at a custom location in the DOM.
