@@ -1,0 +1,101 @@
+/**
+ * @pillar-ai/vue - Vue bindings for Pillar Embedded Help SDK
+ * 
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * import { PillarProvider, usePillar, useHelpPanel } from '@pillar-ai/vue';
+ * </script>
+ * 
+ * <template>
+ *   <PillarProvider help-center="your-help-center">
+ *     <MyApp />
+ *   </PillarProvider>
+ * </template>
+ * ```
+ * 
+ * @example
+ * ```vue
+ * <!-- MyApp.vue -->
+ * <script setup lang="ts">
+ * import { useHelpPanel } from '@pillar-ai/vue';
+ * 
+ * const { isReady } = usePillar();
+ * const { toggle } = useHelpPanel();
+ * </script>
+ * 
+ * <template>
+ *   <div>
+ *     <h1>Welcome!</h1>
+ *     <button @click="toggle">Get Help</button>
+ *   </div>
+ * </template>
+ * ```
+ * 
+ * @example Custom panel placement
+ * ```vue
+ * <script setup lang="ts">
+ * import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
+ * </script>
+ * 
+ * <template>
+ *   <PillarProvider 
+ *     help-center="your-help-center" 
+ *     :config="{ panel: { container: 'manual' } }"
+ *   >
+ *     <div class="layout">
+ *       <PillarPanel class="custom-panel" />
+ *       <main>Your content</main>
+ *     </div>
+ *   </PillarProvider>
+ * </template>
+ * ```
+ */
+
+// Provider
+export {
+    default as PillarProvider,
+    pillarContextKey,
+    type PillarContextValue,
+    type PillarProviderProps,
+    type CardComponentProps,
+    type CardComponent,
+} from './PillarProvider.vue';
+
+// Components
+export { default as PillarPanel, type PillarPanelProps } from './PillarPanel.vue';
+
+// Composables
+export { useHelpPanel, type UseHelpPanelResult } from './composables/useHelpPanel';
+export { usePillar, type UsePillarResult, type TypedUsePillarResult } from './composables/usePillar';
+
+// Re-export types from core SDK for convenience
+export type {
+    EdgeTriggerConfig,
+    MobileTriggerConfig,
+    MobileTriggerPosition,
+    MobileTriggerIcon,
+    MobileTriggerSize,
+    PanelConfig,
+    PillarConfig,
+    PillarEvents,
+    PillarState,
+    ResolvedConfig,
+    ResolvedMobileTriggerConfig,
+    ResolvedThemeConfig,
+    TaskExecutePayload,
+    TextSelectionConfig,
+    ThemeColors,
+    ThemeConfig,
+    ThemeMode,
+    CardCallbacks,
+    CardRenderer,
+    SidebarTabConfig,
+    // Action types for type-safe onTask
+    ActionDefinitions,
+    SyncActionDefinitions,
+    ActionDataType,
+    ActionNames,
+    // Chat context for escalation
+    ChatContext,
+} from '@pillar-ai/sdk';
