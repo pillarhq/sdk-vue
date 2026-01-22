@@ -51,7 +51,7 @@
     "vue": ">=3.3.0"
   },
   "dependencies": {
-    "@pillar-ai/sdk": "^0.1.7"
+    "@pillar-ai/sdk": "^0.1.8"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
