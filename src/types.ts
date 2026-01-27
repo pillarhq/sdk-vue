@@ -95,8 +95,16 @@ export interface PillarContextValue {
 }
 
 export interface PillarProviderProps {
-  /** Help center subdomain or identifier */
-  helpCenter: string;
+  /**
+   * Your product key from the Pillar app.
+   * Get it at app.trypillar.com
+   */
+  productKey?: string;
+
+  /**
+   * @deprecated Use `productKey` instead. Will be removed in v1.0.
+   */
+  helpCenter?: string;
 
   /**
    * Additional SDK configuration
@@ -105,7 +113,7 @@ export interface PillarProviderProps {
    * - `panel.useShadowDOM`: Whether to isolate styles in Shadow DOM (default: false).
    *   Set to false to let custom cards inherit your app's CSS (Tailwind, etc.)
    */
-  config?: Omit<PillarConfig, 'helpCenter'>;
+  config?: Omit<PillarConfig, 'productKey' | 'helpCenter'>;
 
   /**
    * Handler called when a task action is triggered from the chat.

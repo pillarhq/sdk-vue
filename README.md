@@ -1,20 +1,25 @@
 # @pillar-ai/vue
 
-Vue 3 bindings for the Pillar Embedded Help SDK — Add contextual help and AI-powered assistance to your Vue application.
+Vue 3 bindings for Pillar — Cursor for your product.
 
 [![npm version](https://img.shields.io/npm/v/@pillar-ai/vue)](https://www.npmjs.com/package/@pillar-ai/vue)
 [![npm downloads](https://img.shields.io/npm/dm/@pillar-ai/vue)](https://www.npmjs.com/package/@pillar-ai/vue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
 
+## What is Pillar?
+
+Pillar is an embedded AI co-pilot that helps users complete tasks, not just answer questions. Users say what they want, and Pillar uses your UI to make it happen — navigating pages, pre-filling forms, and calling your APIs.
+
 ## Features
 
+- **Task Execution** — Navigate pages, pre-fill forms, call APIs on behalf of users
 - **Vue Composables** — `usePillar` and `useHelpPanel` for idiomatic Vue integration
-- **Components** — `PillarProvider` and `PillarPanel` components
 - **Composition API** — Built for Vue 3 Composition API
 - **Nuxt Compatible** — Works with Nuxt 3 applications
-- **Type-Safe Actions** — Full TypeScript support for custom actions
-- **Custom Cards** — Render custom Vue components for inline actions
+- **Multi-Step Plans** — Chain actions into workflows for complex tasks
+- **Type-Safe Actions** — Full TypeScript support for action definitions
+- **Custom Action Cards** — Render Vue components for confirmations and data input
 
 ## Documentation
 
@@ -32,127 +37,90 @@ yarn add @pillar-ai/vue
 
 ## Quick Start
 
-Wrap your app with `PillarProvider`:
+### 1. Get Your Product Key
+
+First, register your product in the [Pillar app](https://app.trypillar.com):
+
+1. Sign up or log in at [app.trypillar.com](https://app.trypillar.com)
+2. Create a new product
+3. Copy your **Product Key** from the settings page
+
+### 2. Add the Provider
+
+Wrap your app with `PillarProvider` and define actions:
 
 ```vue
 <script setup lang="ts">
 import { PillarProvider } from '@pillar-ai/vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const actions = {
+  export_to_csv: {
+    type: 'trigger' as const,
+    label: 'Export to CSV',
+    description: 'Export current data to CSV file',
+  },
+  go_to_settings: {
+    type: 'navigate' as const,
+    label: 'Open Settings',
+    description: 'Navigate to settings page',
+  },
+};
+
+function handleTask(task: { name: string; data: any }) {
+  if (task.name === 'go_to_settings') {
+    router.push('/settings');
+  }
+  if (task.name === 'export_to_csv') {
+    downloadCSV();
+  }
+}
 </script>
 
 <template>
-  <PillarProvider help-center="your-help-center">
+  <PillarProvider
+    product-key="your-product-key"
+    :actions="actions"
+    :on-task="handleTask"
+  >
     <MyApp />
   </PillarProvider>
 </template>
 ```
 
-### Nuxt 3 Integration
+## Defining Actions
 
-Create a plugin for Nuxt 3 applications:
+Actions define what your co-pilot can do. When users make requests, Pillar matches intent to actions:
 
-```ts
-// plugins/pillar.client.ts
-export default defineNuxtPlugin(() => {
-  // Pillar SDK is client-side only
-});
-```
+```typescript
+const actions = {
+  // Navigation actions
+  go_to_billing: {
+    type: 'navigate' as const,
+    label: 'Open Billing',
+    description: 'Navigate to billing and subscription settings',
+  },
 
-Then wrap your app in `app.vue`:
+  // Trigger actions that execute code
+  export_report: {
+    type: 'trigger' as const,
+    label: 'Export Report',
+    description: 'Export the current report to PDF or CSV',
+  },
 
-```vue
-<script setup lang="ts">
-import { PillarProvider } from '@pillar-ai/vue';
-</script>
-
-<template>
-  <PillarProvider help-center="your-help-center">
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </PillarProvider>
-</template>
-```
-
-## Components
-
-### PillarProvider
-
-The root provider that initializes the SDK and provides context to child components.
-
-```vue
-<template>
-  <PillarProvider
-    help-center="your-help-center"
-    :config="{
-      panel: { position: 'right', mode: 'push' },
-      edgeTrigger: { enabled: true },
-      theme: { mode: 'auto' },
-    }"
-  >
-    <!-- Your app content -->
-  </PillarProvider>
-</template>
-```
-
-**Props:**
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `help-center` | `string` | Yes | Your help center subdomain or identifier |
-| `config` | `PillarConfig` | No | SDK configuration options |
-| `on-task` | `(task) => void` | No | Handler for AI-suggested actions |
-| `cards` | `Record<string, Component>` | No | Custom card components |
-
-### Custom Trigger Button
-
-To use your own button instead of the built-in edge trigger:
-
-```vue
-<script setup lang="ts">
-import { PillarProvider, useHelpPanel } from '@pillar-ai/vue';
-</script>
-
-<template>
-  <PillarProvider
-    help-center="your-help-center"
-    :config="{ edgeTrigger: { enabled: false } }"
-  >
-    <MyApp />
-  </PillarProvider>
-</template>
-
-<!-- In MyApp.vue -->
-<script setup lang="ts">
-import { useHelpPanel } from '@pillar-ai/vue';
-
-const { toggle } = useHelpPanel();
-</script>
-
-<template>
-  <button @click="toggle">Get Help</button>
-</template>
-```
-
-### PillarPanel
-
-For custom panel placement (when using `container: 'manual'`):
-
-```vue
-<script setup lang="ts">
-import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
-</script>
-
-<template>
-  <PillarProvider
-    help-center="your-help-center"
-    :config="{ panel: { container: 'manual' } }"
-  >
-    <div class="layout">
-      <main>Your content</main>
-      <PillarPanel class="sidebar-panel" />
-    </div>
-  </PillarProvider>
-</template>
+  // Actions with data schemas (AI extracts parameters)
+  invite_team_member: {
+    type: 'trigger' as const,
+    label: 'Invite Team Member',
+    description: 'Send an invitation to join the team',
+    dataSchema: {
+      email: { type: 'string' as const, required: true },
+      role: { type: 'string' as const, enum: ['admin', 'member', 'viewer'] },
+    },
+  },
+};
 ```
 
 ## Composables
@@ -165,28 +133,31 @@ Access the SDK instance and state:
 <script setup lang="ts">
 import { usePillar } from '@pillar-ai/vue';
 
-const { isReady, isPanelOpen, pillar } = usePillar();
+const { isReady, isPanelOpen, open, close, toggle } = usePillar();
 </script>
 
 <template>
   <div v-if="!isReady">Loading...</div>
-  <div v-else>Panel is {{ isPanelOpen ? 'open' : 'closed' }}</div>
+  <button v-else @click="toggle">
+    {{ isPanelOpen ? 'Close Co-pilot' : 'Open Co-pilot' }}
+  </button>
 </template>
 ```
 
 ### useHelpPanel
 
-Control the help panel:
+Control the co-pilot panel:
 
 ```vue
 <script setup lang="ts">
 import { useHelpPanel } from '@pillar-ai/vue';
 
-const { open, close, toggle, isOpen } = useHelpPanel();
+const { open, close, toggle, isOpen, openChat } = useHelpPanel();
 </script>
 
 <template>
-  <button @click="toggle">{{ isOpen ? 'Close Help' : 'Get Help' }}</button>
+  <button @click="toggle">{{ isOpen ? 'Close' : 'Ask Co-pilot' }}</button>
+  <button @click="openChat">Start Chat</button>
 </template>
 ```
 
@@ -198,74 +169,101 @@ const { open, close, toggle, isOpen } = useHelpPanel();
 | `close()` | Close the panel |
 | `toggle()` | Toggle the panel open/closed |
 | `openArticle(slug)` | Open a specific article |
-| `openCategory(slug)` | Open a specific category |
 | `openSearch(query?)` | Open search with optional query |
 | `openChat()` | Open the AI chat view |
 
-## Type-Safe Actions
+## Components
 
-Define custom actions with full TypeScript support:
+### PillarProvider
+
+The root provider that initializes the SDK:
+
+```vue
+<template>
+  <PillarProvider
+    product-key="your-product-key"
+    :actions="actions"
+    :on-task="handleTask"
+    :config="{
+      panel: { position: 'right', mode: 'push' },
+      edgeTrigger: { enabled: true },
+      theme: { mode: 'auto' },
+    }"
+  >
+    <!-- Your app content -->
+  </PillarProvider>
+</template>
+```
+
+### PillarPanel
+
+For custom panel placement:
 
 ```vue
 <script setup lang="ts">
-import { PillarProvider, usePillar } from '@pillar-ai/vue';
-import type { ActionDefinitions } from '@pillar-ai/vue';
-import { onMounted, onUnmounted } from 'vue';
-
-// Define your actions
-const actions = {
-  openSettings: {
-    type: 'navigate' as const,
-    label: 'Open Settings',
-    description: 'Navigate to settings page',
-  },
-  showNotification: {
-    type: 'trigger' as const,
-    label: 'Show Notification',
-    description: 'Display a notification',
-    dataSchema: {
-      message: { type: 'string' as const, required: true },
-    },
-  },
-} satisfies ActionDefinitions;
-
-// In a child component
-const { onTask } = usePillar<typeof actions>();
-
-let unsub: (() => void) | undefined;
-
-onMounted(() => {
-  // TypeScript knows the exact shape of data based on task name
-  unsub = onTask('showNotification', (data) => {
-    console.log(data.message); // Typed!
-  });
-});
-
-onUnmounted(() => {
-  unsub?.();
-});
+import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
 </script>
+
+<template>
+  <PillarProvider
+    product-key="your-product-key"
+    :config="{ panel: { container: 'manual' } }"
+  >
+    <div class="layout">
+      <main>Your content</main>
+      <PillarPanel class="sidebar-panel" />
+    </div>
+  </PillarProvider>
+</template>
 ```
 
-## Custom Cards
+## Custom Action Cards
 
-Register custom Vue components for inline_ui type actions:
+Render custom UI for inline actions:
+
+```vue
+<!-- InviteCard.vue -->
+<script setup lang="ts">
+import type { CardComponentProps } from '@pillar-ai/vue';
+
+const props = defineProps<CardComponentProps<{ email: string; role: string }>>();
+
+async function handleConfirm() {
+  props.onStateChange?.('loading', 'Sending invite...');
+  try {
+    await sendInvite(props.data.email, props.data.role);
+    props.onStateChange?.('success', 'Invite sent!');
+    props.onConfirm();
+  } catch (e) {
+    props.onStateChange?.('error', 'Failed to send invite');
+  }
+}
+</script>
+
+<template>
+  <div class="card">
+    <p>Invite {{ props.data.email }} as {{ props.data.role }}?</p>
+    <button @click="handleConfirm">Send Invite</button>
+    <button @click="props.onCancel">Cancel</button>
+  </div>
+</template>
+```
+
+Register in the provider:
 
 ```vue
 <script setup lang="ts">
 import { PillarProvider } from '@pillar-ai/vue';
-import InviteMembersCard from './cards/InviteMembersCard.vue';
-import ConfirmDeleteCard from './cards/ConfirmDeleteCard.vue';
+import InviteCard from './InviteCard.vue';
 
 const cards = {
-  invite_members: InviteMembersCard,
-  confirm_delete: ConfirmDeleteCard,
+  invite_team_member: InviteCard,
 };
 </script>
 
 <template>
   <PillarProvider
-    help-center="your-help-center"
+    product-key="your-product-key"
     :cards="cards"
   >
     <MyApp />
@@ -273,43 +271,42 @@ const cards = {
 </template>
 ```
 
-### Card Component Props
+## Nuxt 3 Integration
 
-Custom card components receive the following props:
+Create a client plugin for Nuxt 3:
 
-```typescript
-interface CardComponentProps<T = Record<string, unknown>> {
-  /** Data extracted by the AI for this action */
-  data: T;
-  /** Called when user confirms the action */
-  onConfirm: (modifiedData?: Record<string, unknown>) => void;
-  /** Called when user cancels the action */
-  onCancel: () => void;
-  /** Called to report state changes */
-  onStateChange?: (state: 'loading' | 'success' | 'error', message?: string) => void;
-}
+```ts
+// plugins/pillar.client.ts
+export default defineNuxtPlugin(() => {
+  // Pillar SDK is client-side only
+});
 ```
 
-Example card component:
+Wrap your app in `app.vue`:
 
 ```vue
 <script setup lang="ts">
-import type { CardComponentProps } from '@pillar-ai/vue';
+import { PillarProvider } from '@pillar-ai/vue';
 
-const props = defineProps<CardComponentProps<{ emails: string[] }>>();
+const actions = {
+  navigate: {
+    type: 'navigate' as const,
+    label: 'Navigate',
+    description: 'Navigate to a page',
+  },
+};
 </script>
 
 <template>
-  <div class="invite-card">
-    <h3>Invite Team Members</h3>
-    <ul>
-      <li v-for="email in props.data.emails" :key="email">{{ email }}</li>
-    </ul>
-    <div class="actions">
-      <button @click="props.onCancel">Cancel</button>
-      <button @click="props.onConfirm()">Send Invites</button>
-    </div>
-  </div>
+  <PillarProvider
+    product-key="your-product-key"
+    :actions="actions"
+    :on-task="(task) => navigateTo(task.data.path)"
+  >
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </PillarProvider>
 </template>
 ```
 
@@ -323,7 +320,7 @@ import { usePillar } from '@pillar-ai/vue';
 import { watch, ref } from 'vue';
 
 const { setTheme } = usePillar();
-const isDarkMode = ref(false); // Your app's dark mode state
+const isDarkMode = ref(false);
 
 watch(isDarkMode, (dark) => {
   setTheme({ mode: dark ? 'dark' : 'light' });

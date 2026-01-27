@@ -39,12 +39,17 @@ export default defineComponent({
   name: 'PillarProvider',
 
   props: {
+    productKey: {
+      type: String,
+      default: undefined,
+    },
+    // @deprecated Use productKey instead
     helpCenter: {
       type: String,
-      required: true,
+      default: undefined,
     },
     config: {
-      type: Object as PropType<Omit<PillarConfig, 'helpCenter'>>,
+      type: Object as PropType<Omit<PillarConfig, 'productKey' | 'helpCenter'>>,
       default: undefined,
     },
     onTask: {
@@ -62,6 +67,16 @@ export default defineComponent({
     const pillar = shallowRef<Pillar | null>(null);
     const state = ref<PillarState>('uninitialized');
     const isPanelOpen = ref(false);
+
+    // Support both productKey (new) and helpCenter (deprecated)
+    const resolvedKey = computed(() => props.productKey ?? props.helpCenter);
+
+    // Warn about deprecated helpCenter usage
+    if (props.helpCenter && !props.productKey) {
+      console.warn(
+        '[Pillar Vue] "help-center" prop is deprecated. Use "product-key" instead.'
+      );
+    }
 
     // Computed
     const isReady = computed(() => state.value === 'ready');
@@ -185,7 +200,7 @@ export default defineComponent({
 
         // Initialize new instance
         const instance = await Pillar.init({
-          helpCenter: props.helpCenter,
+          productKey: resolvedKey.value,
           ...props.config,
         });
 

@@ -1,5 +1,5 @@
 /**
- * @pillar-ai/vue - Vue bindings for Pillar Embedded Help SDK
+ * @pillar-ai/vue - Vue bindings for Pillar SDK
  * 
  * @example
  * ```vue
@@ -8,7 +8,7 @@
  * </script>
  * 
  * <template>
- *   <PillarProvider help-center="your-help-center">
+ *   <PillarProvider product-key="your-product-key">
  *     <MyApp />
  *   </PillarProvider>
  * </template>
@@ -27,7 +27,7 @@
  * <template>
  *   <div>
  *     <h1>Welcome!</h1>
- *     <button @click="toggle">Get Help</button>
+ *     <button @click="toggle">Open Co-pilot</button>
  *   </div>
  * </template>
  * ```
@@ -40,7 +40,7 @@
  * 
  * <template>
  *   <PillarProvider 
- *     help-center="your-help-center" 
+ *     product-key="your-product-key"
  *     :config="{ panel: { container: 'manual' } }"
  *   >
  *     <div class="layout">
