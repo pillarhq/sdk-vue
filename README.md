@@ -1,11 +1,33 @@
 # @pillar-ai/vue
 
-Vue 3 bindings for the Pillar Embedded Help SDK.
+Vue 3 bindings for the Pillar Embedded Help SDK — Add contextual help and AI-powered assistance to your Vue application.
+
+[![npm version](https://img.shields.io/npm/v/@pillar-ai/vue)](https://www.npmjs.com/package/@pillar-ai/vue)
+[![npm downloads](https://img.shields.io/npm/dm/@pillar-ai/vue)](https://www.npmjs.com/package/@pillar-ai/vue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
+
+## Features
+
+- **Vue Composables** — `usePillar` and `useHelpPanel` for idiomatic Vue integration
+- **Components** — `PillarProvider` and `PillarPanel` components
+- **Composition API** — Built for Vue 3 Composition API
+- **Nuxt Compatible** — Works with Nuxt 3 applications
+- **Type-Safe Actions** — Full TypeScript support for custom actions
+- **Custom Cards** — Render custom Vue components for inline actions
+
+## Documentation
+
+**[View Full Documentation](https://trypillar.com/docs)** | [Vue Guide](https://trypillar.com/docs/vue/installation) | [API Reference](https://trypillar.com/docs/reference/vue)
 
 ## Installation
 
 ```bash
 npm install @pillar-ai/vue
+# or
+pnpm add @pillar-ai/vue
+# or
+yarn add @pillar-ai/vue
 ```
 
 ## Quick Start
@@ -20,6 +42,33 @@ import { PillarProvider } from '@pillar-ai/vue';
 <template>
   <PillarProvider help-center="your-help-center">
     <MyApp />
+  </PillarProvider>
+</template>
+```
+
+### Nuxt 3 Integration
+
+Create a plugin for Nuxt 3 applications:
+
+```ts
+// plugins/pillar.client.ts
+export default defineNuxtPlugin(() => {
+  // Pillar SDK is client-side only
+});
+```
+
+Then wrap your app in `app.vue`:
+
+```vue
+<script setup lang="ts">
+import { PillarProvider } from '@pillar-ai/vue';
+</script>
+
+<template>
+  <PillarProvider help-center="your-help-center">
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </PillarProvider>
 </template>
 ```
@@ -45,14 +94,14 @@ The root provider that initializes the SDK and provides context to child compone
 </template>
 ```
 
-#### Props
+**Props:**
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
 | `help-center` | `string` | Yes | Your help center subdomain or identifier |
 | `config` | `PillarConfig` | No | SDK configuration options |
-| `on-task` | `(task: TaskExecutePayload) => void` | No | Handler for AI-suggested actions |
-| `cards` | `Record<string, Component>` | No | Custom card components for inline_ui actions |
+| `on-task` | `(task) => void` | No | Handler for AI-suggested actions |
+| `cards` | `Record<string, Component>` | No | Custom card components |
 
 ### Custom Trigger Button
 
@@ -141,7 +190,7 @@ const { open, close, toggle, isOpen } = useHelpPanel();
 </template>
 ```
 
-#### Available Methods
+**Available Methods:**
 
 | Method | Description |
 |--------|-------------|
@@ -271,7 +320,7 @@ Sync the panel theme with your app's dark mode:
 ```vue
 <script setup lang="ts">
 import { usePillar } from '@pillar-ai/vue';
-import { watch } from 'vue';
+import { watch, ref } from 'vue';
 
 const { setTheme } = usePillar();
 const isDarkMode = ref(false); // Your app's dark mode state
@@ -281,6 +330,14 @@ watch(isDarkMode, (dark) => {
 });
 </script>
 ```
+
+## Related Packages
+
+| Package | Description |
+|---------|-------------|
+| [@pillar-ai/sdk](https://github.com/pillarhq/sdk) | Core vanilla JavaScript SDK |
+| [@pillar-ai/react](https://github.com/pillarhq/sdk-react) | React bindings |
+| [@pillar-ai/svelte](https://github.com/pillarhq/sdk-svelte) | Svelte bindings |
 
 ## Requirements
 
