@@ -69,22 +69,63 @@ export type {
 // Composables
 export { useHelpPanel, type UseHelpPanelResult } from './composables/useHelpPanel';
 export { usePillar, type TypedUsePillarResult, type UsePillarResult } from './composables/usePillar';
+export { usePillarTool, usePillarAction } from './composables/usePillarTool';
 
 // Re-export types from core SDK for convenience
 export type {
-    ActionDataType,
-    // Action types for type-safe onTask
-    ActionDefinitions, ActionNames, CardCallbacks,
-    CardRenderer, EdgeTriggerConfig,
+    // Configuration types
+    EdgeTriggerConfig,
+    MobileTriggerConfig,
+    MobileTriggerPosition,
+    MobileTriggerIcon,
+    MobileTriggerSize,
     PanelConfig,
     PillarConfig,
     PillarEvents,
     PillarState,
     ResolvedConfig,
-    ResolvedThemeConfig, SidebarTabConfig, SyncActionDefinitions, TaskExecutePayload,
+    ResolvedMobileTriggerConfig,
+    ResolvedThemeConfig,
+    TaskExecutePayload,
     TextSelectionConfig,
     ThemeColors,
     ThemeConfig,
-    ThemeMode
+    ThemeMode,
+    CardCallbacks,
+    CardRenderer,
+    SidebarTabConfig,
+    // Tool types for type-safe onTask and usePillarTool
+    ToolDefinitions,
+    SyncToolDefinitions,
+    ToolDataType,
+    ToolNames,
+    // Unified tool schema (new API)
+    ToolExecuteResult,
+    ToolSchema,
+    ToolType,
+    // Backwards compatibility aliases (deprecated)
+    ActionDefinitions,
+    SyncActionDefinitions,
+    ActionDataType,
+    ActionNames,
+    ActionResult,
+    ActionSchema,
+    ActionType,
+    // Chat context for escalation
+    ChatContext,
+    // DOM Scanning types (deprecated - feature is disabled)
+    /** @deprecated DOM scanning is disabled */
+    DOMScanningConfig,
+    /** @deprecated DOM scanning is disabled */
+    ResolvedDOMScanningConfig,
+    /** @deprecated DOM scanning is disabled */
+    ScanOptions,
+    /** @deprecated DOM scanning is disabled */
+    CompactScanResult,
+    /** @deprecated DOM scanning is disabled */
+    InteractionType,
+    // DOM Scanner utilities (deprecated - feature is disabled)
+    /** @deprecated DOM scanning is disabled */
+    scanPageDirect,
 } from '@pillar-ai/sdk';
 
