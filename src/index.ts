@@ -69,7 +69,12 @@ export type {
 // Composables
 export { useHelpPanel, type UseHelpPanelResult } from './composables/useHelpPanel';
 export { usePillar, type TypedUsePillarResult, type UsePillarResult } from './composables/usePillar';
-export { usePillarTool, usePillarAction } from './composables/usePillarTool';
+export {
+    usePillarTool,
+    usePillarAction,
+    type ToolRenderProps,
+    type VueToolSchema,
+} from './composables/usePillarTool';
 
 // Re-export types from core SDK for convenience
 export type {

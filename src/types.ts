@@ -124,6 +124,20 @@ export interface PillarProviderProps {
   /**
    * Custom card components to render for inline_ui type actions.
    * Map card type names to Vue components that will render the inline UI.
+   *
+   * @deprecated Use the `render` prop on `usePillarTool` instead to co-locate
+   * the card renderer with the tool definition. This prop will be removed in v2.0.
+   *
+   * @example New pattern (recommended):
+   * ```ts
+   * usePillarTool({
+   *   name: 'invite_members',
+   *   description: 'Invite team members',
+   *   type: 'inline_ui',
+   *   execute: async (input) => ({ emails: input.emails }),
+   *   render: InviteMembersCard,
+   * });
+   * ```
    */
   cards?: Record<string, CardComponent>;
 }
