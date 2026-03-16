@@ -223,16 +223,16 @@ import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
 </template>
 ```
 
-## Custom Action Cards
+## Inline UI with render
 
-Render custom UI for inline actions:
+For `inline_ui` tools, use the `render` prop with `usePillarTool` to display custom Vue components in the chat:
 
 ```vue
 <!-- InviteCard.vue -->
 <script setup lang="ts">
-import type { CardComponentProps } from '@pillar-ai/vue';
+import type { ToolRenderProps } from '@pillar-ai/vue';
 
-const props = defineProps<CardComponentProps<{ email: string; role: string }>>();
+const props = defineProps<ToolRenderProps<{ email: string; role: string }>>();
 
 async function handleConfirm() {
   props.onStateChange?.('loading', 'Sending invite...');
@@ -255,27 +255,40 @@ async function handleConfirm() {
 </template>
 ```
 
-Register in the provider:
+Register the tool with the `render` prop:
 
 ```vue
 <script setup lang="ts">
-import { PillarProvider } from '@pillar-ai/vue';
+import { usePillarTool } from '@pillar-ai/vue';
 import InviteCard from './InviteCard.vue';
 
-const cards = {
-  invite_team_member: InviteCard,
-};
+usePillarTool({
+  name: 'invite_team_member',
+  description: 'Invite a new team member via email',
+  type: 'inline_ui',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      email: { type: 'string', description: 'Email address' },
+      role: { type: 'string', enum: ['admin', 'member', 'viewer'] },
+    },
+    required: ['email'],
+  },
+  execute: async ({ email, role }) => ({ email, role: role || 'member' }),
+  render: InviteCard,
+});
 </script>
 
 <template>
-  <PillarProvider
-    product-key="your-product-key"
-    :cards="cards"
-  >
-    <MyApp />
-  </PillarProvider>
+  <div>Your app content</div>
 </template>
 ```
+
+The render component receives these props:
+- `data` — return value from `execute`
+- `onConfirm(modifiedData?)` — call when user confirms
+- `onCancel()` — call when user cancels
+- `onStateChange?(state, message?)` — optional loading/success/error states
 
 ## Nuxt 3 Integration
 
