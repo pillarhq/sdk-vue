@@ -225,7 +225,7 @@ import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
 
 ## Inline UI with render
 
-For `inline_ui` tools, use the `render` prop with `usePillarTool` to display custom Vue components in the chat:
+For `inline_ui` tools, use the `render` prop with `usePillarTool` to display custom Vue components in the chat. The AI agent provides data directly to the render component — no `execute` function needed:
 
 ```vue
 <!-- InviteCard.vue -->
@@ -274,7 +274,6 @@ usePillarTool({
     },
     required: ['email'],
   },
-  execute: async ({ email, role }) => ({ email, role: role || 'member' }),
   render: InviteCard,
 });
 </script>

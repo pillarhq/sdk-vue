@@ -4,7 +4,11 @@
  * Register one or more tools with co-located metadata and handlers.
  * Tools are registered on mount and unregistered on unmount.
  *
- * @example Single tool
+ * - For `type: 'inline_ui'` tools: provide `render` (a Vue component).
+ *   The AI agent supplies data directly to the component — no `execute` needed.
+ * - For all other tool types: provide `execute`. No `render` prop.
+ *
+ * @example Single executable tool
  * ```vue
  * <script setup lang="ts">
  * import { usePillarTool } from '@pillar-ai/vue';
@@ -32,7 +36,7 @@
  * </template>
  * ```
  *
- * @example Tool with inline render
+ * @example Inline UI tool with render component
  * ```vue
  * <script setup lang="ts">
  * import { usePillarTool } from '@pillar-ai/vue';
@@ -42,7 +46,6 @@
  *   name: 'search_shoes',
  *   description: 'Search for shoes',
  *   type: 'inline_ui',
- *   execute: async ({ query }) => ({ shoes: await searchShoes(query) }),
  *   render: ShoeSearchCard,
  * });
  * </script>
@@ -85,7 +88,12 @@
  * ```
  */
 
-import type { ToolSchema, CardCallbacks } from '@pillar-ai/sdk';
+import type {
+  ToolSchema,
+  InlineUIToolSchema,
+  ExecutableToolSchema,
+  CardCallbacks,
+} from '@pillar-ai/sdk';
 import { inject, ref, watch, onUnmounted, computed, createApp, h, type Component, type App } from 'vue';
 import { pillarContextKey } from '../context';
 import type { PillarContextValue } from '../types';
@@ -94,7 +102,7 @@ import type { PillarContextValue } from '../types';
  * Props passed to tool render components.
  */
 export interface ToolRenderProps<T = Record<string, unknown>> {
-  /** Data returned by the tool's execute function */
+  /** Data provided by the AI agent */
   data: T;
   /** Call when user confirms/completes the action */
   onConfirm: (modifiedData?: Record<string, unknown>) => void;
@@ -108,34 +116,31 @@ export interface ToolRenderProps<T = Record<string, unknown>> {
 }
 
 /**
- * Extended tool schema that accepts a Vue component for render.
- * The component receives ToolRenderProps as props.
+ * Vue inline_ui tool schema. Requires `render`, forbids `execute`.
+ *
+ * The AI agent provides data directly to the Vue component.
  */
-export interface VueToolSchema<TInput = Record<string, unknown>>
-  extends Omit<ToolSchema<TInput>, 'render'> {
-  /**
-   * Vue component to render the tool's result inline in chat.
-   *
-   * When provided, the SDK automatically registers this as a card renderer
-   * using the tool name as the card type. The component receives props:
-   * - data: The data returned by execute
-   * - onConfirm: Call to confirm the action
-   * - onCancel: Call to cancel the action
-   * - onStateChange: Optional callback for state changes
-   *
-   * @example
-   * ```vue
-   * // ShoeSearchCard.vue
-   * <script setup>
-   * defineProps(['data', 'onConfirm', 'onCancel']);
-   * </script>
-   * <template>
-   *   <div @click="onConfirm">{{ data.shoes.length }} results</div>
-   * </template>
-   * ```
-   */
-  render?: Component;
+export interface VueInlineUIToolSchema<TInput = Record<string, unknown>>
+  extends Omit<InlineUIToolSchema<TInput>, 'render'> {
+  render: Component;
 }
+
+/**
+ * Vue executable tool schema. Requires `execute`, forbids `render`.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface VueExecutableToolSchema<TInput = Record<string, unknown>>
+  extends ExecutableToolSchema<TInput> {}
+
+/**
+ * Tool schema for `usePillarTool`. Discriminated on `type`:
+ *
+ * - `type: 'inline_ui'` → `render` required, `execute` forbidden
+ * - all other types → `execute` required, `render` forbidden
+ */
+export type VueToolSchema<TInput = Record<string, unknown>> =
+  | VueInlineUIToolSchema<TInput>
+  | VueExecutableToolSchema<TInput>;
 
 /**
  * Register one or more Pillar tools with co-located metadata and handlers.
@@ -145,8 +150,8 @@ export interface VueToolSchema<TInput = Record<string, unknown>>
  * the latest Vue reactive state via refs, so you don't need to worry
  * about stale closures.
  *
- * If a tool has a `render` prop, the SDK automatically registers it as
- * a card renderer using the tool name as the card type.
+ * - `inline_ui` tools register a card renderer from the `render` prop.
+ * - All other tools register the `execute` handler.
  *
  * @param schemaOrSchemas - Single tool schema or array of tool schemas
  */
@@ -186,25 +191,28 @@ export function usePillarTool(
 
     // Register all tools and collect unsubscribe functions
     schemasRef.value.forEach((schema, index) => {
-      const unsub = pillar.defineTool({
-        ...schema,
-        // Wrap execute to always use the latest ref version
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        execute: (input: any) => schemasRef.value[index].execute(input),
-      } as ToolSchema);
-      unsubscribes.push(unsub);
-
-      // If there's a render component, register it as a card renderer
-      if (schema.render) {
+      if (schema.type === 'inline_ui') {
+        // inline_ui: register card renderer, no execute
         const RenderComponent = schema.render;
         const cardType = schema.name;
+
+        // Register the tool definition (without execute) so the SDK knows about it
+        const { render: _render, ...sdkSchema } = schema;
+        const unsub = pillar.defineTool(sdkSchema as ToolSchema);
+        unsubscribes.push(unsub);
 
         const unsubCard = pillar.registerCard(
           cardType,
           (container, data, callbacks: CardCallbacks) => {
+            const currentSchema = schemasRef.value[index];
+            const CurrentRender =
+              currentSchema.type === 'inline_ui'
+                ? (currentSchema as VueInlineUIToolSchema).render
+                : RenderComponent;
+
             const app = createApp({
               render: () =>
-                h(RenderComponent, {
+                h(CurrentRender, {
                   data,
                   onConfirm: callbacks.onConfirm,
                   onCancel: callbacks.onCancel,
@@ -226,6 +234,19 @@ export function usePillarTool(
         );
 
         unsubscribes.push(unsubCard);
+      } else {
+        // Executable tool: register execute handler, no render
+        const unsub = pillar.defineTool({
+          ...schema,
+          // Wrap execute to always use the latest ref version
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          execute: (input: any) =>
+            (schemasRef.value[index] as VueExecutableToolSchema<
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              any
+            >).execute(input),
+        } as ToolSchema);
+        unsubscribes.push(unsub);
       }
     });
   };

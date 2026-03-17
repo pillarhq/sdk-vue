@@ -74,6 +74,8 @@ export {
     usePillarAction,
     type ToolRenderProps,
     type VueToolSchema,
+    type VueInlineUIToolSchema,
+    type VueExecutableToolSchema,
 } from './composables/usePillarTool';
 
 // Re-export types from core SDK for convenience
