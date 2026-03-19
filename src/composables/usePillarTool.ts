@@ -55,6 +55,49 @@
  * </template>
  * ```
  *
+ * @example Executable tool with confirmation step
+ * ```vue
+ * <script setup lang="ts">
+ * import { usePillarTool } from '@pillar-ai/vue';
+ *
+ * usePillarTool({
+ *   name: 'delete_account',
+ *   description: 'Permanently delete the user account',
+ *   needsConfirmation: true,
+ *   execute: async () => {
+ *     await api.deleteAccount();
+ *     return { success: true };
+ *   },
+ * });
+ * </script>
+ *
+ * <template>
+ *   <div>Settings</div>
+ * </template>
+ * ```
+ *
+ * @example Executable tool with custom confirmation UI
+ * ```vue
+ * <script setup lang="ts">
+ * import { usePillarTool } from '@pillar-ai/vue';
+ * import ConfirmDelete from './ConfirmDelete.vue';
+ *
+ * usePillarTool({
+ *   name: 'delete_account',
+ *   description: 'Permanently delete the user account',
+ *   renderConfirmation: ConfirmDelete,
+ *   execute: async () => {
+ *     await api.deleteAccount();
+ *     return { success: true };
+ *   },
+ * });
+ * </script>
+ *
+ * <template>
+ *   <div>Settings</div>
+ * </template>
+ * ```
+ *
  * @example Multiple tools
  * ```vue
  * <script setup lang="ts">
@@ -93,6 +136,7 @@ import type {
   InlineUIToolSchema,
   ExecutableToolSchema,
   CardCallbacks,
+  ToolCardContext,
 } from '@pillar-ai/sdk';
 import { inject, ref, watch, onUnmounted, computed, createApp, h, type Component, type App } from 'vue';
 import { pillarContextKey } from '../context';
@@ -104,15 +148,31 @@ import type { PillarContextValue } from '../types';
 export interface ToolRenderProps<T = Record<string, unknown>> {
   /** Data provided by the AI agent */
   data: T;
-  /** Call when user confirms/completes the action */
-  onConfirm: (modifiedData?: Record<string, unknown>) => void;
-  /** Call when user cancels the action */
-  onCancel: () => void;
+  /**
+   * Send a result back to the AI agent, continuing the conversation.
+   * The agent sees this as the tool's response and can reason about it.
+   */
+  sendResult: (result: Record<string, unknown>) => Promise<void>;
+  /** Context about this card's position in the chat. */
+  context: ToolCardContext;
   /** Report state changes (loading, success, error) */
   onStateChange?: (
     state: 'loading' | 'success' | 'error',
     message?: string
   ) => void;
+}
+
+/**
+ * Props passed to custom confirmation render components.
+ * Only used with executable (non-inline_ui) tools that have `renderConfirmation`.
+ */
+export interface ConfirmationRenderProps<T = Record<string, unknown>> {
+  /** Data the AI provided when invoking the tool */
+  data: T;
+  /** Call to approve the action — triggers the tool's `execute` handler and sends the result to the AI */
+  onConfirm: (modifiedData?: Record<string, unknown>) => void;
+  /** Call to dismiss the confirmation — no execution, card collapses */
+  onCancel: () => void;
 }
 
 /**
@@ -127,10 +187,23 @@ export interface VueInlineUIToolSchema<TInput = Record<string, unknown>>
 
 /**
  * Vue executable tool schema. Requires `execute`, forbids `render`.
+ *
+ * Optionally supports `needsConfirmation` and `renderConfirmation` to gate
+ * execution behind user approval.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface VueExecutableToolSchema<TInput = Record<string, unknown>>
-  extends ExecutableToolSchema<TInput> {}
+  extends ExecutableToolSchema<TInput> {
+  /**
+   * When true, the SDK shows a confirmation UI before calling `execute`.
+   * Uses default Confirm / Cancel buttons unless `renderConfirmation` is provided.
+   */
+  needsConfirmation?: boolean;
+  /**
+   * Custom Vue component for the confirmation step.
+   * Receives `data`, `onConfirm`, `onCancel` props. Implies `needsConfirmation`.
+   */
+  renderConfirmation?: Component;
+}
 
 /**
  * Tool schema for `usePillarTool`. Discriminated on `type`:
@@ -141,6 +214,34 @@ export interface VueExecutableToolSchema<TInput = Record<string, unknown>>
 export type VueToolSchema<TInput = Record<string, unknown>> =
   | VueInlineUIToolSchema<TInput>
   | VueExecutableToolSchema<TInput>;
+
+/**
+ * Error fallback component displayed when an inline_ui tool's render component throws an error.
+ * Shows a generic user-facing message (technical details are sent to the LLM).
+ */
+function renderErrorFallback() {
+  return h(
+    'div',
+    {
+      style: {
+        padding: '12px 16px',
+        borderRadius: '8px',
+        backgroundColor: '#fef2f2',
+        border: '1px solid #fecaca',
+        color: '#991b1b',
+        fontSize: '14px',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      },
+    },
+    [
+      h(
+        'div',
+        { style: { fontWeight: '500' } },
+        'Something went wrong displaying this content'
+      ),
+    ]
+  );
+}
 
 /**
  * Register one or more Pillar tools with co-located metadata and handlers.
@@ -203,22 +304,56 @@ export function usePillarTool(
 
         const unsubCard = pillar.registerCard(
           cardType,
-          (container, data, callbacks: CardCallbacks) => {
+          (container, data, callbacks: CardCallbacks, context) => {
             const currentSchema = schemasRef.value[index];
             const CurrentRender =
               currentSchema.type === 'inline_ui'
                 ? (currentSchema as VueInlineUIToolSchema).render
                 : RenderComponent;
 
+            const fallbackContext: ToolCardContext = {
+              isLatest: true,
+              messageIndex: -1,
+              segmentIndex: -1,
+              toolName: cardType,
+            };
+
+            let hasErrored = false;
             const app = createApp({
               render: () =>
                 h(CurrentRender, {
                   data,
-                  onConfirm: callbacks.onConfirm,
-                  onCancel: callbacks.onCancel,
+                  sendResult: (result: Record<string, unknown>) => {
+                    pillar.sendToolResultAsMessage(cardType, result);
+                    return Promise.resolve();
+                  },
+                  context: context || fallbackContext,
                   onStateChange: callbacks.onStateChange,
                 }),
             });
+
+            app.config.errorHandler = (error) => {
+              if (hasErrored) return;
+              hasErrored = true;
+
+              const existingApp = cardApps.get(container);
+              if (existingApp) {
+                existingApp.unmount();
+                cardApps.delete(container);
+              }
+
+              const errorApp = createApp({
+                render: () => renderErrorFallback(),
+              });
+              errorApp.mount(container);
+              cardApps.set(container, errorApp);
+
+              pillar.sendToolResultAsMessage(cardType, {
+                success: false,
+                error: `Component render error: ${error instanceof Error ? error.message : String(error)}`,
+                errorType: 'render_error',
+              });
+            };
 
             app.mount(container);
             cardApps.set(container, app);
@@ -235,18 +370,115 @@ export function usePillarTool(
 
         unsubscribes.push(unsubCard);
       } else {
-        // Executable tool: register execute handler, no render
-        const unsub = pillar.defineTool({
-          ...schema,
-          // Wrap execute to always use the latest ref version
+        const execSchema = schema as VueExecutableToolSchema<
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          execute: (input: any) =>
-            (schemasRef.value[index] as VueExecutableToolSchema<
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              any
-            >).execute(input),
-        } as ToolSchema);
-        unsubscribes.push(unsub);
+          any
+        >;
+        const wantsConfirmation =
+          execSchema.needsConfirmation || !!execSchema.renderConfirmation;
+
+        if (wantsConfirmation) {
+          // Register the tool WITHOUT execute so the SDK doesn't auto-run it.
+          const {
+            execute: _execute,
+            needsConfirmation: _nc,
+            renderConfirmation: _rc,
+            ...sdkSchema
+          } = execSchema;
+
+          const unsub = pillar.defineTool({
+            ...sdkSchema,
+            needsConfirmation: true,
+          } as unknown as ToolSchema);
+          unsubscribes.push(unsub);
+
+          const ConfirmComponent = execSchema.renderConfirmation;
+
+          const unsubCard = pillar.registerCard(
+            schema.name,
+            (container, data, callbacks: CardCallbacks) => {
+              const handleConfirm = async (
+                modifiedData?: Record<string, unknown>
+              ) => {
+                const currentSchema = schemasRef.value[index] as VueExecutableToolSchema<
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  any
+                >;
+                const executeData = modifiedData || data;
+
+                try {
+                  callbacks.onStateChange?.('loading');
+                  const result = await currentSchema.execute(executeData);
+                  if (result !== undefined) {
+                    await pillar.sendToolResult(schema.name, result);
+                  }
+                  callbacks.onStateChange?.('success');
+                } catch (err) {
+                  callbacks.onStateChange?.(
+                    'error',
+                    err instanceof Error ? err.message : String(err)
+                  );
+                  await pillar.sendToolResult(schema.name, {
+                    success: false,
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                }
+              };
+
+              const handleCancel = () => {
+                callbacks.onCancel?.();
+              };
+
+              if (ConfirmComponent) {
+                const currentSchema = schemasRef.value[index] as VueExecutableToolSchema<
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  any
+                >;
+                const CurrentConfirm =
+                  currentSchema.renderConfirmation || ConfirmComponent;
+
+                const app = createApp({
+                  render: () =>
+                    h(CurrentConfirm, {
+                      data,
+                      onConfirm: handleConfirm,
+                      onCancel: handleCancel,
+                    }),
+                });
+
+                app.mount(container);
+                cardApps.set(container, app);
+
+                return () => {
+                  const existingApp = cardApps.get(container);
+                  if (existingApp) {
+                    existingApp.unmount();
+                    cardApps.delete(container);
+                  }
+                };
+              } else {
+                // Use the default card — wire confirm/cancel through callbacks
+                callbacks.onConfirm = handleConfirm;
+                callbacks.onCancel = handleCancel;
+              }
+            }
+          );
+
+          unsubscribes.push(unsubCard);
+        } else {
+          // Executable tool without confirmation: register execute handler directly
+          const unsub = pillar.defineTool({
+            ...schema,
+            // Wrap execute to always use the latest ref version
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            execute: (input: any) =>
+              (schemasRef.value[index] as VueExecutableToolSchema<
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                any
+              >).execute(input),
+          } as ToolSchema);
+          unsubscribes.push(unsub);
+        }
       }
     });
   };

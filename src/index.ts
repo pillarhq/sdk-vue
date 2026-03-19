@@ -73,6 +73,7 @@ export {
     usePillarTool,
     usePillarAction,
     type ToolRenderProps,
+    type ConfirmationRenderProps,
     type VueToolSchema,
     type VueInlineUIToolSchema,
     type VueExecutableToolSchema,

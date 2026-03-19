@@ -22,10 +22,6 @@ import type { Component, ComputedRef, Ref } from 'vue';
 export interface CardComponentProps<T = Record<string, unknown>> {
   /** Data extracted by the AI for this action */
   data: T;
-  /** Called when user confirms the action */
-  onConfirm: (modifiedData?: Record<string, unknown>) => void;
-  /** Called when user cancels the action */
-  onCancel: () => void;
   /** Called to report state changes (loading, success, error) */
   onStateChange?: (
     state: 'loading' | 'success' | 'error',

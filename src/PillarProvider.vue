@@ -147,8 +147,6 @@ export default defineComponent({
               render() {
                 return h(CardComponent as Component, {
                   data,
-                  onConfirm: callbacks.onConfirm,
-                  onCancel: callbacks.onCancel,
                   onStateChange: callbacks.onStateChange,
                 });
               },

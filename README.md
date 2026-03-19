@@ -233,24 +233,11 @@ For `inline_ui` tools, use the `render` prop with `usePillarTool` to display cus
 import type { ToolRenderProps } from '@pillar-ai/vue';
 
 const props = defineProps<ToolRenderProps<{ email: string; role: string }>>();
-
-async function handleConfirm() {
-  props.onStateChange?.('loading', 'Sending invite...');
-  try {
-    await sendInvite(props.data.email, props.data.role);
-    props.onStateChange?.('success', 'Invite sent!');
-    props.onConfirm();
-  } catch (e) {
-    props.onStateChange?.('error', 'Failed to send invite');
-  }
-}
 </script>
 
 <template>
   <div class="card">
-    <p>Invite {{ props.data.email }} as {{ props.data.role }}?</p>
-    <button @click="handleConfirm">Send Invite</button>
-    <button @click="props.onCancel">Cancel</button>
+    <p>Invite {{ props.data.email }} as {{ props.data.role }}</p>
   </div>
 </template>
 ```
@@ -284,9 +271,7 @@ usePillarTool({
 ```
 
 The render component receives these props:
-- `data` — return value from `execute`
-- `onConfirm(modifiedData?)` — call when user confirms
-- `onCancel()` — call when user cancels
+- `data` — data provided by the AI agent
 - `onStateChange?(state, message?)` — optional loading/success/error states
 
 ## Nuxt 3 Integration
