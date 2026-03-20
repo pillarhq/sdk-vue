@@ -272,7 +272,85 @@ usePillarTool({
 
 The render component receives these props:
 - `data` — data provided by the AI agent
+- `sendResult(result)` — send a result back to the AI agent, continuing the conversation
+- `context` — card position info (`isLatest`, `isReady`, `messageIndex`, `segmentIndex`, `toolName`)
 - `onStateChange?(state, message?)` — optional loading/success/error states
+
+## Confirmation UI
+
+For tools that perform destructive or irreversible actions, use `needsConfirmation` to require user approval before `execute` runs:
+
+```vue
+<script setup lang="ts">
+import { usePillarTool } from '@pillar-ai/vue';
+
+usePillarTool({
+  name: 'delete_project',
+  description: 'Permanently delete a project and all its data',
+  type: 'trigger_tool',
+  needsConfirmation: true,
+  inputSchema: {
+    type: 'object',
+    properties: {
+      projectId: { type: 'string', description: 'Project ID to delete' },
+    },
+    required: ['projectId'],
+  },
+  execute: async ({ projectId }) => {
+    await api.deleteProject(projectId);
+    return { deleted: true };
+  },
+});
+</script>
+
+<template>
+  <div>Your app content</div>
+</template>
+```
+
+The SDK shows a Confirm/Cancel card. The user must click **Confirm** before `execute` runs.
+
+For custom confirmation UI, use `renderConfirmation` with a Vue component:
+
+```vue
+<!-- ConfirmPurchase.vue -->
+<script setup lang="ts">
+import type { ConfirmationRenderProps } from '@pillar-ai/vue';
+
+const props = defineProps<ConfirmationRenderProps<{ total: number; cartId: string }>>();
+</script>
+
+<template>
+  <div class="p-4 border rounded">
+    <p>Complete purchase for ${{ props.data.total }}?</p>
+    <button @click="props.onConfirm()">Buy Now</button>
+    <button @click="props.onCancel()">Cancel</button>
+  </div>
+</template>
+```
+
+```vue
+<script setup lang="ts">
+import { usePillarTool } from '@pillar-ai/vue';
+import ConfirmPurchase from './ConfirmPurchase.vue';
+
+usePillarTool({
+  name: 'complete_purchase',
+  description: 'Complete the purchase',
+  renderConfirmation: ConfirmPurchase,
+  execute: async ({ cartId }) => {
+    await api.checkout(cartId);
+    return { success: true };
+  },
+});
+</script>
+
+<template>
+  <div>Your app content</div>
+</template>
+```
+
+Providing `renderConfirmation` implies `needsConfirmation` — you don't need to set both.
 
 ## Nuxt 3 Integration
 

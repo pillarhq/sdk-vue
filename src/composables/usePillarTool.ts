@@ -345,15 +345,16 @@ export function usePillarTool(
     // Register all tools and collect unsubscribe functions
     schemasRef.value.forEach((schema, index) => {
       if (schema.type === 'inline_ui') {
-        // inline_ui: register card renderer, no execute
         const RenderComponent = schema.render;
         const cardType = schema.name;
+        if (!RenderComponent) {
+          console.warn(
+            `[Pillar] Tool "${cardType}" has type 'inline_ui' but no render component. Skipping registration.`
+          );
+          return;
+        }
 
-        // Register the tool definition (without execute) so the SDK knows about it
-        const { render: _render, ...sdkSchema } = schema;
-        const unsub = pillar.defineTool(sdkSchema as ToolSchema);
-        unsubscribes.push(unsub);
-
+        // Register card renderer first so defineTool sees it in _cardRenderers
         const unsubCard = pillar.registerCard(
           cardType,
           (container, data, callbacks: CardCallbacks, context) => {
@@ -422,6 +423,11 @@ export function usePillarTool(
         );
 
         unsubscribes.push(unsubCard);
+
+        // Register tool definition (without render) so the SDK knows about it
+        const { render: _render, ...sdkSchema } = schema;
+        const unsub = pillar.defineTool(sdkSchema as ToolSchema);
+        unsubscribes.push(unsub);
       } else {
         const execSchema = schema as VueExecutableToolSchema<
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
