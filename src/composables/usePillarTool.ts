@@ -138,7 +138,7 @@ import type {
   CardCallbacks,
   ToolCardContext,
 } from '@pillar-ai/sdk';
-import { inject, ref, watch, onUnmounted, computed, createApp, h, type Component, type App } from 'vue';
+import { inject, ref, watch, onUnmounted, computed, createApp, h, defineComponent, type Component, type App } from 'vue';
 import { pillarContextKey } from '../context';
 import type { PillarContextValue } from '../types';
 
@@ -214,6 +214,58 @@ export interface VueExecutableToolSchema<TInput = Record<string, unknown>>
 export type VueToolSchema<TInput = Record<string, unknown>> =
   | VueInlineUIToolSchema<TInput>
   | VueExecutableToolSchema<TInput>;
+
+/**
+ * Creates a reactive wrapper component that subscribes to Pillar message updates
+ * and recomputes isLatest whenever the message list changes.
+ */
+function createReactiveCardWrapper(
+  RenderComponent: Component,
+  data: Record<string, unknown>,
+  sendResult: (result: Record<string, unknown>) => Promise<void>,
+  onStateChange: CardCallbacks['onStateChange'],
+  messageIndex: number,
+  segmentIndex: number,
+  toolName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pillar: any
+) {
+  return defineComponent({
+    name: 'ReactiveCardWrapper',
+    setup() {
+      const isLatest = ref(pillar.isPositionLatest(messageIndex, segmentIndex));
+      const isReady = ref(!pillar.isChatLoading);
+
+      const unsubMessages = pillar.subscribeToMessages(() => {
+        isLatest.value = pillar.isPositionLatest(messageIndex, segmentIndex);
+      });
+      const unsubLoading = pillar.subscribeToLoadingState(() => {
+        isReady.value = !pillar.isChatLoading;
+      });
+
+      onUnmounted(() => {
+        unsubMessages();
+        unsubLoading();
+      });
+
+      const context = computed<ToolCardContext>(() => ({
+        isLatest: isLatest.value,
+        isReady: isReady.value,
+        messageIndex,
+        segmentIndex,
+        toolName,
+      }));
+
+      return () =>
+        h(RenderComponent, {
+          data,
+          sendResult,
+          context: context.value,
+          onStateChange,
+        });
+    },
+  });
+}
 
 /**
  * Error fallback component displayed when an inline_ui tool's render component throws an error.
@@ -311,26 +363,27 @@ export function usePillarTool(
                 ? (currentSchema as VueInlineUIToolSchema).render
                 : RenderComponent;
 
-            const fallbackContext: ToolCardContext = {
-              isLatest: true,
-              messageIndex: -1,
-              segmentIndex: -1,
-              toolName: cardType,
-            };
+            const messageIndex = context?.messageIndex ?? -1;
+            const segmentIndex = context?.segmentIndex ?? -1;
+
+            // Create a reactive wrapper that subscribes to message updates
+            // and recomputes isLatest when the message list changes
+            const ReactiveWrapper = createReactiveCardWrapper(
+              CurrentRender,
+              data,
+              (result: Record<string, unknown>) => {
+                pillar.sendToolResultAsMessage(cardType, result);
+                return Promise.resolve();
+              },
+              callbacks.onStateChange,
+              messageIndex,
+              segmentIndex,
+              cardType,
+              pillar
+            );
 
             let hasErrored = false;
-            const app = createApp({
-              render: () =>
-                h(CurrentRender, {
-                  data,
-                  sendResult: (result: Record<string, unknown>) => {
-                    pillar.sendToolResultAsMessage(cardType, result);
-                    return Promise.resolve();
-                  },
-                  context: context || fallbackContext,
-                  onStateChange: callbacks.onStateChange,
-                }),
-            });
+            const app = createApp(ReactiveWrapper);
 
             app.config.errorHandler = (error) => {
               if (hasErrored) return;
