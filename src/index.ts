@@ -8,7 +8,7 @@
  * </script>
  * 
  * <template>
- *   <PillarProvider product-key="your-product-key">
+ *   <PillarProvider agent-slug="your-agent-slug">
  *     <MyApp />
  *   </PillarProvider>
  * </template>
@@ -40,7 +40,7 @@
  * 
  * <template>
  *   <PillarProvider 
- *     product-key="your-product-key"
+ *     agent-slug="your-agent-slug"
  *     :config="{ panel: { container: 'manual' } }"
  *   >
  *     <div class="layout">
@@ -78,6 +78,12 @@ export {
     type VueInlineUIToolSchema,
     type VueExecutableToolSchema,
 } from './composables/usePillarTool';
+export {
+    usePillarChat,
+    type PillarChatMessage,
+    type UsePillarChatOptions,
+    type UsePillarChatReturn,
+} from './composables/usePillarChat';
 
 // Re-export types from core SDK for convenience
 export type {
@@ -119,6 +125,13 @@ export type {
     ActionResult,
     ActionSchema,
     ActionType,
+    // Chat types for headless chat
+    ChatMessage,
+    ChatImage,
+    ChatResponse,
+    ProgressEvent,
+    ImageUploadResponse,
+    ArticleSummary,
     // Chat context for escalation
     ChatContext,
     // DOM Scanning types (deprecated - feature is disabled)

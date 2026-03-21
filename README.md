@@ -47,9 +47,9 @@ yarn add @pillar-ai/vue
 
 ## Quick Start
 
-### 1. Get your product key
+### 1. Get your agent slug
 
-Sign up at [app.trypillar.com](https://app.trypillar.com) and grab your product key from the dashboard.
+Sign up at [app.trypillar.com](https://app.trypillar.com) and grab your agent slug from the dashboard.
 
 ### 2. Add the provider
 
@@ -87,7 +87,7 @@ function handleTask(task: { name: string; data: any }) {
 
 <template>
   <PillarProvider
-    product-key="your-product-key"
+    agent-slug="your-agent-slug"
     :actions="actions"
     :on-task="handleTask"
   >
@@ -187,7 +187,7 @@ The root provider that initializes the SDK:
 ```vue
 <template>
   <PillarProvider
-    product-key="your-product-key"
+    agent-slug="your-agent-slug"
     :actions="actions"
     :on-task="handleTask"
     :config="{
@@ -212,7 +212,7 @@ import { PillarProvider, PillarPanel } from '@pillar-ai/vue';
 
 <template>
   <PillarProvider
-    product-key="your-product-key"
+    agent-slug="your-agent-slug"
     :config="{ panel: { container: 'manual' } }"
   >
     <div class="layout">
@@ -380,7 +380,7 @@ const actions = {
 
 <template>
   <PillarProvider
-    product-key="your-product-key"
+    agent-slug="your-agent-slug"
     :actions="actions"
     :on-task="(task) => navigateTo(task.data.path)"
   >

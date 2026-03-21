@@ -92,13 +92,19 @@ export interface PillarContextValue {
 
 export interface PillarProviderProps {
   /**
-   * Your product key from the Pillar app.
+   * Your agent slug from the Pillar dashboard.
+   * This is the primary identifier for your copilot.
    * Get it at app.trypillar.com
+   */
+  agentSlug?: string;
+
+  /**
+   * @deprecated Use `agentSlug` instead. Will be removed in a future version.
    */
   productKey?: string;
 
   /**
-   * @deprecated Use `productKey` instead. Will be removed in v1.0.
+   * @deprecated Use `agentSlug` instead. Will be removed in v1.0.
    */
   helpCenter?: string;
 
@@ -109,7 +115,7 @@ export interface PillarProviderProps {
    * - `panel.useShadowDOM`: Whether to isolate styles in Shadow DOM (default: false).
    *   Set to false to let custom cards inherit your app's CSS (Tailwind, etc.)
    */
-  config?: Omit<PillarConfig, 'productKey' | 'helpCenter'>;
+  config?: Omit<PillarConfig, 'productKey' | 'helpCenter' | 'agentSlug'>;
 
   /**
    * Handler called when a task action is triggered from the chat.
