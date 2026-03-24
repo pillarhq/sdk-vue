@@ -39,17 +39,22 @@ export default defineComponent({
   name: 'PillarProvider',
 
   props: {
+    agentSlug: {
+      type: String,
+      default: undefined,
+    },
+    // @deprecated Use agentSlug instead
     productKey: {
       type: String,
       default: undefined,
     },
-    // @deprecated Use productKey instead
+    // @deprecated Use agentSlug instead
     helpCenter: {
       type: String,
       default: undefined,
     },
     config: {
-      type: Object as PropType<Omit<PillarConfig, 'productKey' | 'helpCenter'>>,
+      type: Object as PropType<Omit<PillarConfig, 'productKey' | 'helpCenter' | 'agentSlug'>>,
       default: undefined,
     },
     onTask: {
@@ -68,13 +73,15 @@ export default defineComponent({
     const state = ref<PillarState>('uninitialized');
     const isPanelOpen = ref(false);
 
-    // Support both productKey (new) and helpCenter (deprecated)
-    const resolvedKey = computed(() => props.productKey ?? props.helpCenter);
+    const resolvedKey = computed(() => props.agentSlug ?? props.productKey ?? props.helpCenter);
 
-    // Warn about deprecated helpCenter usage
-    if (props.helpCenter && !props.productKey) {
+    if (props.helpCenter && !props.productKey && !props.agentSlug) {
       console.warn(
-        '[Pillar Vue] "help-center" prop is deprecated. Use "product-key" instead.'
+        '[Pillar Vue] "help-center" prop is deprecated. Use "agent-slug" instead.'
+      );
+    } else if (props.productKey && !props.agentSlug) {
+      console.warn(
+        '[Pillar Vue] "product-key" prop is deprecated. Use "agent-slug" instead.'
       );
     }
 
@@ -198,6 +205,7 @@ export default defineComponent({
 
         // Initialize new instance
         const instance = await Pillar.init({
+          agentSlug: props.agentSlug,
           productKey: resolvedKey.value,
           ...props.config,
         });

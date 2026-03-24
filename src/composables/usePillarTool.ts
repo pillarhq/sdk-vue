@@ -138,6 +138,7 @@ import type {
   CardCallbacks,
   ToolCardContext,
 } from '@pillar-ai/sdk';
+import { createDefaultConfirmCard } from '@pillar-ai/sdk';
 import { inject, ref, watch, onUnmounted, computed, createApp, h, defineComponent, type Component, type App } from 'vue';
 import { pillarContextKey } from '../context';
 import type { PillarContextValue } from '../types';
@@ -455,7 +456,7 @@ export function usePillarTool(
 
           const unsubCard = pillar.registerCard(
             schema.name,
-            (container, data, callbacks: CardCallbacks) => {
+            (container, data, callbacks: CardCallbacks, context) => {
               const handleConfirm = async (
                 modifiedData?: Record<string, unknown>
               ) => {
@@ -468,8 +469,9 @@ export function usePillarTool(
                 try {
                   callbacks.onStateChange?.('loading');
                   const result = await currentSchema.execute(executeData);
+                  pillar.clearPendingConfirmation(schema.name);
                   if (result !== undefined) {
-                    await pillar.sendToolResult(schema.name, result);
+                    pillar.sendToolResultAsMessage(schema.name, result);
                   }
                   callbacks.onStateChange?.('success');
                 } catch (err) {
@@ -477,7 +479,8 @@ export function usePillarTool(
                     'error',
                     err instanceof Error ? err.message : String(err)
                   );
-                  await pillar.sendToolResult(schema.name, {
+                  pillar.clearPendingConfirmation(schema.name);
+                  pillar.sendToolResultAsMessage(schema.name, {
                     success: false,
                     error: err instanceof Error ? err.message : String(err),
                   });
@@ -485,7 +488,11 @@ export function usePillarTool(
               };
 
               const handleCancel = () => {
-                callbacks.onCancel?.();
+                pillar.clearPendingConfirmation(schema.name);
+                pillar.sendToolResultAsMessage(schema.name, {
+                  cancelled: true,
+                  message: 'User cancelled this action.',
+                });
               };
 
               if (ConfirmComponent) {
@@ -516,9 +523,14 @@ export function usePillarTool(
                   }
                 };
               } else {
-                // Use the default card — wire confirm/cancel through callbacks
                 callbacks.onConfirm = handleConfirm;
                 callbacks.onCancel = handleCancel;
+                const defaultCard = createDefaultConfirmCard(
+                  { name: schema.name, data } as Parameters<typeof createDefaultConfirmCard>[0],
+                  callbacks,
+                  context?.messageIndex
+                );
+                container.appendChild(defaultCard);
               }
             }
           );
