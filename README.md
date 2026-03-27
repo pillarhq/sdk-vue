@@ -317,14 +317,18 @@ For custom confirmation UI, use `renderConfirmation` with a Vue component:
 <script setup lang="ts">
 import type { ConfirmationRenderProps } from '@pillar-ai/vue';
 
-const props = defineProps<ConfirmationRenderProps<{ total: number; cartId: string }>>();
+const props = defineProps<
+  ConfirmationRenderProps<{ total: number; cartId: string }>
+>();
 </script>
 
 <template>
   <div class="p-4 border rounded">
     <p>Complete purchase for ${{ props.data.total }}?</p>
-    <button @click="props.onConfirm()">Buy Now</button>
-    <button @click="props.onCancel()">Cancel</button>
+    <div class="flex gap-2 mt-4">
+      <button @click="props.onConfirm()">Buy Now</button>
+      <button @click="props.onCancel()">Cancel</button>
+    </div>
   </div>
 </template>
 ```
@@ -337,6 +341,7 @@ import ConfirmPurchase from './ConfirmPurchase.vue';
 usePillarTool({
   name: 'complete_purchase',
   description: 'Complete the purchase',
+  type: 'trigger_tool',
   renderConfirmation: ConfirmPurchase,
   execute: async ({ cartId }) => {
     await api.checkout(cartId);
@@ -351,6 +356,14 @@ usePillarTool({
 ```
 
 Providing `renderConfirmation` implies `needsConfirmation` — you don't need to set both.
+
+The `ConfirmationRenderProps` interface provides:
+
+| Prop | Type | Description |
+| ---- | ---- | ----------- |
+| `data` | `T` | Data the AI extracted via `inputSchema` |
+| `onConfirm` | `(modifiedData?) => void` | Approve the action. Optionally pass modified data to override what the AI sent to `execute`. |
+| `onCancel` | `() => void` | Dismiss the confirmation without executing |
 
 ## Nuxt 3 Integration
 
